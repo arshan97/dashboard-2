@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { StatusIndicator } from "@/components/status-indicator"
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { StatusIndicator } from "@/components/status-indicator";
 import {
   Globe,
   Shield,
@@ -18,7 +18,7 @@ import {
   Star,
   Zap,
   ShieldIcon,
-} from "lucide-react"
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,12 +26,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast"
-import { L3DDoSProtection } from "@/components/l3-ddos-protection"
-import { DBSGateway } from "@/components/dbs-gateway"
-import { ServiceProvidersGrid } from "@/components/service-providers-grid"
-import type { BankingService, DDoSProtection, CDNService } from "@/types/dashboard"
+} from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { L3DDoSProtection } from "@/components/l3-ddos-protection";
+import { DBSGateway } from "@/components/dbs-gateway";
+import { ServiceProvidersGrid } from "@/components/service-providers-grid";
+import { AvailabilityChart } from "@/components/availability-chart";
+import type {
+  BankingService,
+  DDoSProtection,
+  CDNService,
+} from "@/types/dashboard";
 
 const dnsServices: BankingService[] = [
   { name: "Internet Banking", code: "IBBR", status: "healthy" },
@@ -40,13 +45,13 @@ const dnsServices: BankingService[] = [
   { name: "iWealth", code: "IWSM", status: "healthy" },
   { name: "IDEAL", code: "IDEAL", status: "healthy" },
   { name: "IDEAL Mobile", code: "IDEAL-M", status: "healthy" },
-]
+];
 
 const ddosProtection: DDoSProtection[] = [
   { name: "StarHub", enabled: true, status: "healthy" },
   { name: "Akamai", enabled: true, status: "healthy" },
   { name: "Nexus Guard", enabled: true, status: "critical" },
-]
+];
 
 const cdnServices: CDNService[] = [
   {
@@ -85,38 +90,52 @@ const cdnServices: CDNService[] = [
     akamai: { status: "warning", active: false },
     cloudflare: { status: "healthy", active: true },
   },
-]
+];
 
-type FlipStep = "select" | "summary" | "confirm"
+type FlipStep = "select" | "summary" | "confirm";
 
 type FlipDialogState = {
-  isOpen: boolean
-  step: FlipStep
-  source: "akamai" | "cloudflare" | null
-  target: "akamai" | "cloudflare" | null
-  selectedServices: string[]
-}
+  isOpen: boolean;
+  step: FlipStep;
+  source: "akamai" | "cloudflare" | null;
+  target: "akamai" | "cloudflare" | null;
+  selectedServices: string[];
+};
 
 export default function DashboardPage() {
-  const [services, setServices] = useState(cdnServices)
+  const [services, setServices] = useState(cdnServices);
   const [flipDialog, setFlipDialog] = useState<FlipDialogState>({
     isOpen: false,
     step: "select",
     source: null,
     target: null,
     selectedServices: [],
-  })
-  const { toast } = useToast()
+  });
+  const [chartDialog, setChartDialog] = useState<{
+    isOpen: boolean;
+    service: CDNService | null;
+    provider: "akamai" | "cloudflare" | null;
+  }>({
+    isOpen: false,
+    service: null,
+    provider: null,
+  });
+  const { toast } = useToast();
 
-  const handleFlip = (source: "akamai" | "cloudflare", target: "akamai" | "cloudflare") => {
+  const handleFlip = (
+    source: "akamai" | "cloudflare",
+    target: "akamai" | "cloudflare"
+  ) => {
     setFlipDialog({
       isOpen: true,
       step: "select",
       source,
       target,
-      selectedServices: services.filter((s) => s[source].active).map((s) => s.code),
-    })
-  }
+      selectedServices: services
+        .filter((s) => s[source].active)
+        .map((s) => s.code),
+    });
+  };
 
   const handleServiceSelect = (code: string) => {
     setFlipDialog((prev) => ({
@@ -124,30 +143,30 @@ export default function DashboardPage() {
       selectedServices: prev.selectedServices.includes(code)
         ? prev.selectedServices.filter((c) => c !== code)
         : [...prev.selectedServices, code],
-    }))
-  }
+    }));
+  };
 
   const handleNextStep = () => {
     setFlipDialog((prev) => ({
       ...prev,
       step: prev.step === "select" ? "summary" : "confirm",
-    }))
-  }
+    }));
+  };
 
   const handlePrevStep = () => {
     setFlipDialog((prev) => ({
       ...prev,
       step: prev.step === "summary" ? "select" : "summary",
-    }))
-  }
+    }));
+  };
 
   const submitFlipRequest = () => {
-    console.log("Submitting flip request:", flipDialog)
+    console.log("Submitting flip request:", flipDialog);
 
     toast({
       title: "Flip Request Submitted",
       description: `Request to flip ${flipDialog.selectedServices.length} services from ${flipDialog.source} to ${flipDialog.target} has been submitted for approval.`,
-    })
+    });
 
     setFlipDialog({
       isOpen: false,
@@ -155,11 +174,18 @@ export default function DashboardPage() {
       source: null,
       target: null,
       selectedServices: [],
-    })
-  }
+    });
+  };
+
+  const handleOpenChart = (
+    service: CDNService,
+    provider: "akamai" | "cloudflare"
+  ) => {
+    setChartDialog({ isOpen: true, service, provider });
+  };
 
   return (
-    <div className="container mx-auto p-6 overflow-x-auto min-w-[1200px]">
+    <div className="container mx-auto p-2 overflow-x-auto min-w-full">
       <div className="flex space-x-6">
         {/* Service Providers Grid */}
         <div className="w-1/3">
@@ -173,7 +199,9 @@ export default function DashboardPage() {
             {/* DNS Records */}
             <Card className="bg-card/50 backdrop-blur-sm shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 py-2">
-                <CardTitle className="text-base font-medium">DNS Records</CardTitle>
+                <CardTitle className="text-base font-medium">
+                  DNS Records
+                </CardTitle>
                 <Globe className="h-4 w-4 text-black" />
               </CardHeader>
               <CardContent className="px-2 py-2">
@@ -190,16 +218,36 @@ export default function DashboardPage() {
                             : "bg-rose-600 dark:bg-rose-500"
                         }`}
                       >
-                        {service.code === "IBBR" && <Globe className="h-4 w-4 text-black" />}
-                        {service.code === "MBS" && <Smartphone className="h-4 w-4 text-black" />}
-                        {service.code === "P2P-SG" && <CreditCard className="h-4 w-4 text-black" />}
-                        {service.code === "IWSM" && <BarChart3 className="h-4 w-4 text-black" />}
-                        {service.code === "IDEAL" && <Building2 className="h-4 w-4 text-black" />}
-                        {service.code === "IDEAL-M" && <Tablet className="h-4 w-4 text-black" />}
+                        {service.code === "IBBR" && (
+                          <Globe className="h-4 w-4 text-black" />
+                        )}
+                        {service.code === "MBS" && (
+                          <Smartphone className="h-4 w-4 text-black" />
+                        )}
+                        {service.code === "P2P-SG" && (
+                          <CreditCard className="h-4 w-4 text-black" />
+                        )}
+                        {service.code === "IWSM" && (
+                          <BarChart3 className="h-4 w-4 text-black" />
+                        )}
+                        {service.code === "IDEAL" && (
+                          <Building2 className="h-4 w-4 text-black" />
+                        )}
+                        {service.code === "IDEAL-M" && (
+                          <Tablet className="h-4 w-4 text-black" />
+                        )}
                       </div>
-                      <span className="text-xs font-medium text-center">{service.name}</span>
-                      <span className="text-[9px] text-muted-foreground">{service.code}</span>
-                      <StatusIndicator status={service.status} size="sm" className="mt-0.5" />
+                      <span className="text-xs font-medium text-center">
+                        {service.name}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground">
+                        {service.code}
+                      </span>
+                      <StatusIndicator
+                        status={service.status}
+                        size="sm"
+                        className="mt-0.5"
+                      />
                     </div>
                   ))}
                 </div>
@@ -211,7 +259,9 @@ export default function DashboardPage() {
             {/* DNS Provider */}
             <Card className="bg-card/50 backdrop-blur-sm shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between pb-2 px-3 py-2">
-                <CardTitle className="text-base font-medium">DNS Provider</CardTitle>
+                <CardTitle className="text-base font-medium">
+                  DNS Provider
+                </CardTitle>
                 <Shield className="h-4 w-4 text-black" />
               </CardHeader>
               <CardContent className="px-2 py-2">
@@ -229,11 +279,19 @@ export default function DashboardPage() {
                               : "bg-rose-600 dark:bg-rose-500"
                           }`}
                         >
-                          {protection.name === "StarHub" && <Star className="h-4 w-4 text-black" />}
-                          {protection.name === "Akamai" && <Zap className="h-4 w-4 text-black" />}
-                          {protection.name === "Nexus Guard" && <ShieldIcon className="h-4 w-4 text-black" />}
+                          {protection.name === "StarHub" && (
+                            <Star className="h-4 w-4 text-black" />
+                          )}
+                          {protection.name === "Akamai" && (
+                            <Zap className="h-4 w-4 text-black" />
+                          )}
+                          {protection.name === "Nexus Guard" && (
+                            <ShieldIcon className="h-4 w-4 text-black" />
+                          )}
                         </div>
-                        <span className="text-sm font-medium">{protection.name}</span>
+                        <span className="text-sm font-medium">
+                          {protection.name}
+                        </span>
                       </div>
                       <StatusIndicator status={protection.status} size="sm" />
                     </div>
@@ -262,28 +320,48 @@ export default function DashboardPage() {
                       {services.map((service) => (
                         <div
                           key={`akamai-${service.code}`}
-                          className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors"
+                          className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors cursor-pointer"
+                          onClick={() => handleOpenChart(service, "akamai")}
                         >
                           <div
                             className={`w-7 h-7 rounded-full flex items-center justify-center mb-1 ${
                               service.akamai.status === "healthy"
                                 ? "bg-emerald-600 dark:bg-emerald-500"
                                 : service.akamai.status === "warning"
-                                  ? "bg-amber-600 dark:bg-amber-500"
-                                  : "bg-rose-600 dark:bg-rose-500"
+                                ? "bg-amber-600 dark:bg-amber-500"
+                                : "bg-rose-600 dark:bg-rose-500"
                             }`}
                           >
-                            {service.code === "IBBR" && <Globe className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "MBS" && <Smartphone className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "P2P-SG" && <CreditCard className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "IWSM" && <BarChart3 className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "IDEAL" && <Building2 className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "IDEAL-M" && <Tablet className="h-3.5 w-3.5 text-black" />}
+                            {service.code === "IBBR" && (
+                              <Globe className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "MBS" && (
+                              <Smartphone className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "P2P-SG" && (
+                              <CreditCard className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "IWSM" && (
+                              <BarChart3 className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "IDEAL" && (
+                              <Building2 className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "IDEAL-M" && (
+                              <Tablet className="h-3.5 w-3.5 text-black" />
+                            )}
                           </div>
-                          <span className="text-xs font-medium text-center">{service.name}</span>
-                          <span className="text-[9px] text-muted-foreground">{service.code}</span>
+                          <span className="text-xs font-medium text-center">
+                            {service.name}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground">
+                            {service.code}
+                          </span>
                           <div className="flex items-center mt-0.5 space-x-1">
-                            <StatusIndicator status={service.akamai.status} size="sm" />
+                            <StatusIndicator
+                              status={service.akamai.status}
+                              size="sm"
+                            />
                             {service.akamai.active && (
                               <span className="text-[9px] font-medium bg-emerald-600 text-white px-1 rounded">
                                 Active
@@ -302,28 +380,48 @@ export default function DashboardPage() {
                       {services.map((service) => (
                         <div
                           key={`cloudflare-${service.code}`}
-                          className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors"
+                          className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors cursor-pointer"
+                          onClick={() => handleOpenChart(service, "cloudflare")}
                         >
                           <div
                             className={`w-7 h-7 rounded-full flex items-center justify-center mb-1 ${
                               service.cloudflare.status === "healthy"
                                 ? "bg-emerald-600 dark:bg-emerald-500"
                                 : service.cloudflare.status === "warning"
-                                  ? "bg-amber-600 dark:bg-amber-500"
-                                  : "bg-rose-600 dark:bg-rose-500"
+                                ? "bg-amber-600 dark:bg-amber-500"
+                                : "bg-rose-600 dark:bg-rose-500"
                             }`}
                           >
-                            {service.code === "IBBR" && <Globe className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "MBS" && <Smartphone className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "P2P-SG" && <CreditCard className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "IWSM" && <BarChart3 className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "IDEAL" && <Building2 className="h-3.5 w-3.5 text-black" />}
-                            {service.code === "IDEAL-M" && <Tablet className="h-3.5 w-3.5 text-black" />}
+                            {service.code === "IBBR" && (
+                              <Globe className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "MBS" && (
+                              <Smartphone className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "P2P-SG" && (
+                              <CreditCard className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "IWSM" && (
+                              <BarChart3 className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "IDEAL" && (
+                              <Building2 className="h-3.5 w-3.5 text-black" />
+                            )}
+                            {service.code === "IDEAL-M" && (
+                              <Tablet className="h-3.5 w-3.5 text-black" />
+                            )}
                           </div>
-                          <span className="text-xs font-medium text-center">{service.name}</span>
-                          <span className="text-[9px] text-muted-foreground">{service.code}</span>
+                          <span className="text-xs font-medium text-center">
+                            {service.name}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground">
+                            {service.code}
+                          </span>
                           <div className="flex items-center mt-0.5 space-x-1">
-                            <StatusIndicator status={service.cloudflare.status} size="sm" />
+                            <StatusIndicator
+                              status={service.cloudflare.status}
+                              size="sm"
+                            />
                             {service.cloudflare.active && (
                               <span className="text-[9px] font-medium bg-emerald-600 text-white px-1 rounded">
                                 Active
@@ -336,10 +434,18 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex justify-between mt-4">
-                  <Button variant="outline" size="sm" onClick={() => handleFlip("akamai", "cloudflare")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFlip("akamai", "cloudflare")}
+                  >
                     Flip Akamai to Cloudflare
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleFlip("cloudflare", "akamai")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFlip("cloudflare", "akamai")}
+                  >
                     Flip Cloudflare to Akamai
                   </Button>
                 </div>
@@ -367,7 +473,9 @@ export default function DashboardPage() {
 
       <Dialog
         open={flipDialog.isOpen}
-        onOpenChange={(open) => !open && setFlipDialog((prev) => ({ ...prev, isOpen: false }))}
+        onOpenChange={(open) =>
+          !open && setFlipDialog((prev) => ({ ...prev, isOpen: false }))
+        }
       >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -379,8 +487,10 @@ export default function DashboardPage() {
             <DialogDescription>
               {flipDialog.step === "select" &&
                 `Select services to flip from ${flipDialog.source} to ${flipDialog.target}`}
-              {flipDialog.step === "summary" && "Review the services you've selected for the flip"}
-              {flipDialog.step === "confirm" && "Confirm to submit the flip request for approval"}
+              {flipDialog.step === "summary" &&
+                "Review the services you've selected for the flip"}
+              {flipDialog.step === "confirm" &&
+                "Confirm to submit the flip request for approval"}
             </DialogDescription>
           </DialogHeader>
 
@@ -389,10 +499,15 @@ export default function DashboardPage() {
               {services
                 .filter((service) => service[flipDialog.source!]?.active)
                 .map((service) => (
-                  <div key={service.code} className="flex items-center space-x-2">
+                  <div
+                    key={service.code}
+                    className="flex items-center space-x-2"
+                  >
                     <Checkbox
                       id={service.code}
-                      checked={flipDialog.selectedServices.includes(service.code)}
+                      checked={flipDialog.selectedServices.includes(
+                        service.code
+                      )}
                       onCheckedChange={() => handleServiceSelect(service.code)}
                     />
                     <label
@@ -409,27 +524,34 @@ export default function DashboardPage() {
           {flipDialog.step === "summary" && flipDialog.source && (
             <div className="space-y-4">
               {flipDialog.selectedServices.map((code) => {
-                const service = services.find((s) => s.code === code)
+                const service = services.find((s) => s.code === code);
                 return service ? (
                   <div key={code} className="flex items-center justify-between">
                     <span>
                       {service.name} ({service.code})
                     </span>
                     <div className="flex items-center space-x-2">
-                      <StatusIndicator status={service[flipDialog.source!]?.status || "unknown"} size="sm" />
+                      <StatusIndicator
+                        status={
+                          service[flipDialog.source!]?.status || "unknown"
+                        }
+                        size="sm"
+                      />
                       <ArrowRight className="h-4 w-4" />
                       <StatusIndicator status="unknown" size="sm" />
                     </div>
                   </div>
-                ) : null
+                ) : null;
               })}
             </div>
           )}
 
           {flipDialog.step === "confirm" && (
             <p className="text-sm text-muted-foreground">
-              You are about to submit a request to flip {flipDialog.selectedServices.length} service(s) from{" "}
-              {flipDialog.source} to {flipDialog.target}. This action will require approval before being executed.
+              You are about to submit a request to flip{" "}
+              {flipDialog.selectedServices.length} service(s) from{" "}
+              {flipDialog.source} to {flipDialog.target}. This action will
+              require approval before being executed.
             </p>
           )}
 
@@ -440,7 +562,10 @@ export default function DashboardPage() {
               </Button>
             )}
             {flipDialog.step !== "confirm" ? (
-              <Button onClick={handleNextStep} disabled={flipDialog.selectedServices.length === 0}>
+              <Button
+                onClick={handleNextStep}
+                disabled={flipDialog.selectedServices.length === 0}
+              >
                 {flipDialog.step === "select" ? "Review Selection" : "Confirm"}
               </Button>
             ) : (
@@ -449,7 +574,17 @@ export default function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  )
-}
 
+      {chartDialog.service && chartDialog.provider && (
+        <AvailabilityChart
+          service={chartDialog.service}
+          provider={chartDialog.provider}
+          isOpen={chartDialog.isOpen}
+          onOpenChange={(open) =>
+            setChartDialog((prev) => ({ ...prev, isOpen: open }))
+          }
+        />
+      )}
+    </div>
+  );
+}
