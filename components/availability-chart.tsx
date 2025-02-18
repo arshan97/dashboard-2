@@ -6,8 +6,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,7 +16,6 @@ import {
 } from "recharts";
 import type { CDNService } from "@/types/dashboard";
 
-// Generate data based on service status
 const generateServiceData = (
   service: CDNService,
   provider: "akamai" | "cloudflare"
@@ -25,20 +24,24 @@ const generateServiceData = (
   const now = new Date();
   now.setMinutes(0, 0, 0);
 
-  // For IDEAL in Cloudflare, show critical status (0% availability)
+  // For IDEAL in Cloudflare, show more 0% availability
   const isIdealCloudflare =
     service.code === "IDEAL" && provider === "cloudflare";
 
-  for (let i = 12; i >= 0; i--) {
-    const date = new Date(now.getTime() - i * 2 * 60 * 60 * 1000);
+  for (let i = 23; i >= 0; i--) {
+    const date = new Date(now.getTime() - i * 60 * 60 * 1000);
     data.push({
       time: date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
+        hour: "numeric",
         hour12: true,
       }),
-      availability: isIdealCloudflare ? 0 : 100,
-      status: isIdealCloudflare ? "Unavailable" : "Available",
+      availability: isIdealCloudflare
+        ? Math.random() < 0.7
+          ? 0
+          : 100
+        : Math.random() < 0.1
+        ? 0
+        : 100,
     });
   }
   return data;
@@ -59,18 +62,18 @@ export function AvailabilityChart({
 }: AvailabilityChartProps) {
   const data = generateServiceData(service, provider);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const status = payload[0].payload.status;
+      const availability = payload[0].value;
+      const status = availability === 100 ? "Available" : "Unavailable";
       return (
         <div className="bg-background/90 border p-2 rounded-lg shadow-lg">
-          <p className="text-sm font-medium">{payload[0].payload.time}</p>
+          <p className="text-sm font-medium">{label}</p>
           <p className="text-sm">
             Status: <span className="font-medium">{status}</span>
           </p>
           <p className="text-sm">
-            Availability:{" "}
-            <span className="font-medium">{payload[0].value}%</span>
+            Availability: <span className="font-medium">{availability}%</span>
           </p>
         </div>
       );
@@ -78,10 +81,19 @@ export function AvailabilityChart({
     return null;
   };
 
-  // Determine the fill color based on service and provider
-  const isIdealCloudflare =
-    service.code === "IDEAL" && provider === "cloudflare";
-  const areaColor = isIdealCloudflare ? "#ef4444" : "#22c55e";
+  const CustomDot = (props: any) => {
+    const { cx, cy, value } = props;
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={4}
+        fill="white"
+        stroke={value === 100 ? "#22c55e" : "#ef4444"}
+        strokeWidth={2}
+      />
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -95,46 +107,62 @@ export function AvailabilityChart({
         </DialogHeader>
         <div className="h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
+            <LineChart
               data={data}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              margin={{ top: 10, right: 30, left: 0, bottom: 50 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" interval={1} tick={{ fontSize: 12 }} />
+              <XAxis
+                dataKey="time"
+                interval={0}
+                tick={{ fontSize: 10 }}
+                tickMargin={10}
+                angle={-45}
+                textAnchor="end"
+              />
               <YAxis
                 domain={[0, 100]}
                 tick={{ fontSize: 12 }}
-                tickCount={6}
+                tickCount={2}
+                ticks={[0, 100]}
                 label={{
-                  value: "Percentage",
+                  value: "Availability (%)",
                   angle: -90,
                   position: "insideLeft",
                   style: { fontSize: 12 },
                 }}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Area
+              <Line
                 type="stepAfter"
                 dataKey="availability"
-                stroke={areaColor}
-                fill={areaColor}
-                fillOpacity={0.8}
+                stroke="white"
+                strokeWidth={2}
+                dot={<CustomDot />}
+                activeDot={(props) => (
+                  <circle
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={6}
+                    fill={
+                      props.payload.availability === 100 ? "#22c55e" : "#ef4444"
+                    }
+                    stroke="white"
+                    strokeWidth={2}
+                  />
+                )}
               />
-            </AreaChart>
+            </LineChart>
           </ResponsiveContainer>
         </div>
         <div className="flex items-center gap-4 pt-4 border-t">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-emerald-500 rounded-sm" />
-            <span className="text-sm">Available</span>
+            <div className="w-3 h-3 bg-emerald-500 rounded-full" />
+            <span className="text-sm">100% Available</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded-sm" />
-            <span className="text-sm">Unavailable</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-gray-500 rounded-sm" />
-            <span className="text-sm">Maintenance</span>
+            <div className="w-3 h-3 bg-red-500 rounded-full" />
+            <span className="text-sm">0% Available</span>
           </div>
         </div>
       </DialogContent>
