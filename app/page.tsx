@@ -165,6 +165,19 @@ export default function DashboardPage() {
     setChartDialog({ isOpen: true, service, provider });
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "healthy":
+        return "bg-green-500";
+      case "warning":
+        return "bg-yellow-500";
+      case "critical":
+        return "bg-red-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
   return (
     <div className="container mx-auto p-2 overflow-x-auto min-w-full h-full">
       <div className="flex space-x-6 h-full">
