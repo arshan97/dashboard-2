@@ -438,8 +438,8 @@ export default function DashboardPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex justify-between text-sm font-medium">
-              <span>Source: {flipDialog.source}</span>
-              <span>Target: {flipDialog.target}</span>
+              <span>{flipDialog.source}</span>
+              <span>{flipDialog.target}</span>
             </div>
             {services
               .filter((service) => service[flipDialog.source!]?.active)
@@ -467,31 +467,28 @@ export default function DashboardPage() {
                       )}
                       <label
                         htmlFor={service.code}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center space-x-2"
                       >
-                        {service.name} ({service.code})
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="flex items-center space-x-1">
-                        <span className="text-xs">Source:</span>
+                        <span>
+                          {service.name} ({service.code})
+                        </span>
                         <div
                           className={`w-3 h-3 rounded-full ${getStatusColor(
                             service[flipDialog.source!].status
                           )}`}
                         />
-                      </div>
-                      {flipDialog.selectedServices.includes(service.code) && (
-                        <ArrowRight className="h-4 w-4" />
-                      )}
-                      <div className="flex items-center space-x-1">
-                        <span className="text-xs">Target:</span>
-                        <div
-                          className={`w-3 h-3 rounded-full ${getStatusColor(
-                            service[flipDialog.target!].status
-                          )}`}
-                        />
-                      </div>
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      {!isTargetCritical &&
+                        flipDialog.selectedServices.includes(service.code) && (
+                          <ArrowRight className="h-4 w-8" />
+                        )}
+                      <div
+                        className={`w-3 h-3 rounded-full ${getStatusColor(
+                          service[flipDialog.target!].status
+                        )}`}
+                      />
                     </div>
                   </div>
                 );
