@@ -424,41 +424,65 @@ export default function DashboardPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="flex justify-between text-sm font-medium">
+              <span>Source: {flipDialog.source}</span>
+              <span>Target: {flipDialog.target}</span>
+            </div>
             {services
               .filter((service) => service[flipDialog.source!]?.active)
-              .map((service) => (
-                <div
-                  key={service.code}
-                  className="flex items-center justify-between space-x-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id={service.code}
-                      checked={flipDialog.selectedServices.includes(
-                        service.code
+              .map((service) => {
+                const isTargetCritical =
+                  service[flipDialog.target!]?.status === "critical";
+                return (
+                  <div
+                    key={service.code}
+                    className={`flex items-center justify-between space-x-2 ${
+                      isTargetCritical ? "opacity-50" : ""
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      {!isTargetCritical && (
+                        <Checkbox
+                          id={service.code}
+                          checked={flipDialog.selectedServices.includes(
+                            service.code
+                          )}
+                          onCheckedChange={() =>
+                            handleServiceSelect(service.code)
+                          }
+                        />
                       )}
-                      onCheckedChange={() => handleServiceSelect(service.code)}
-                    />
-                    <label
-                      htmlFor={service.code}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {service.name} ({service.code})
-                    </label>
+                      <label
+                        htmlFor={service.code}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {service.name} ({service.code})
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
+                        <span className="text-xs">Source:</span>
+                        <div
+                          className={`w-3 h-3 rounded-full ${getStatusColor(
+                            service[flipDialog.source!].status
+                          )}`}
+                        />
+                      </div>
+                      {flipDialog.selectedServices.includes(service.code) && (
+                        <ArrowRight className="h-4 w-4" />
+                      )}
+                      <div className="flex items-center space-x-1">
+                        <span className="text-xs">Target:</span>
+                        <div
+                          className={`w-3 h-3 rounded-full ${getStatusColor(
+                            service[flipDialog.target!].status
+                          )}`}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className={`w-3 h-3 rounded-full ${
-                        service[flipDialog.source!].status === "healthy"
-                          ? "bg-green-500"
-                          : "bg-red-500"
-                      }`}
-                    />
-                    <ArrowRight className="h-4 w-4" />
-                    <div className="w-3 h-3 rounded-full bg-gray-300" />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
           </div>
           <DialogFooter>
             <Button
