@@ -428,86 +428,143 @@ export default function DashboardPage() {
           !open && setFlipDialog((prev) => ({ ...prev, isOpen: false }))
         }
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Select Services to Flip</DialogTitle>
+            <DialogTitle>
+              CDN Flip: {flipDialog.source} to {flipDialog.target}
+            </DialogTitle>
             <DialogDescription>
-              Select services to flip from {flipDialog.source} to{" "}
-              {flipDialog.target}
+              Select services to flip. Critical services cannot be flipped.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex justify-between text-sm font-medium">
-              <span>{flipDialog.source}</span>
-              <span>{flipDialog.target}</span>
+            <div className="flex justify-between items-center text-sm font-medium bg-muted p-2 rounded">
+              <span>Service</span>
+              <div className="flex space-x-4">
+                <span>{flipDialog.source}</span>
+                <span>{flipDialog.target}</span>
+              </div>
             </div>
-            {services
-              .filter((service) => service[flipDialog.source!]?.active)
-              .map((service) => {
-                const isTargetCritical =
-                  service[flipDialog.target!]?.status === "critical";
-                return (
-                  <div
-                    key={service.code}
-                    className={`flex items-center justify-between space-x-2 ${
-                      isTargetCritical ? "opacity-50" : ""
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2">
-                      {!isTargetCritical && (
-                        <Checkbox
-                          id={service.code}
-                          checked={flipDialog.selectedServices.includes(
-                            service.code
-                          )}
-                          onCheckedChange={() =>
-                            handleServiceSelect(service.code)
-                          }
-                        />
-                      )}
-                      <label
-                        htmlFor={service.code}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center space-x-2"
-                      >
-                        <span>
-                          {service.name} ({service.code})
-                        </span>
-                        <div
-                          className={`w-3 h-3 rounded-full ${getStatusColor(
-                            service[flipDialog.source!].status
-                          )}`}
-                        />
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      {!isTargetCritical &&
-                        flipDialog.selectedServices.includes(service.code) && (
-                          <ArrowRight className="h-4 w-8" />
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+              {services
+                .filter((service) => service[flipDialog.source!]?.active)
+                .map((service) => {
+                  const isTargetCritical =
+                    service[flipDialog.target!]?.status === "critical";
+                  return (
+                    <div
+                      key={service.code}
+                      className={`flex items-center justify-between space-x-2 p-2 rounded ${
+                        isTargetCritical ? "bg-muted/50" : "hover:bg-muted/30"
+                      } transition-colors`}
+                    >
+                      <div className="flex items-center space-x-2 flex-1">
+                        {!isTargetCritical && (
+                          <Checkbox
+                            id={service.code}
+                            checked={flipDialog.selectedServices.includes(
+                              service.code
+                            )}
+                            onCheckedChange={() =>
+                              handleServiceSelect(service.code)
+                            }
+                          />
                         )}
-                      <div
-                        className={`w-3 h-3 rounded-full ${getStatusColor(
-                          service[flipDialog.target!].status
-                        )}`}
-                      />
+                        <label
+                          htmlFor={service.code}
+                          className={`text-sm font-medium leading-none ${
+                            isTargetCritical ? "opacity-50" : ""
+                          }`}
+                        >
+                          {service.name} ({service.code})
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className={`w-3 h-3 rounded-full ${getStatusColor(
+                                  service[flipDialog.source!].status
+                                )}`}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>
+                                {flipDialog.source}:{" "}
+                                {service[flipDialog.source!].status}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <div className="w-8 flex justify-center">
+                          {!isTargetCritical &&
+                            flipDialog.selectedServices.includes(
+                              service.code
+                            ) && (
+                              <ArrowRight className="h-4 w-4 text-primary" />
+                            )}
+                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className={`w-3 h-3 rounded-full ${getStatusColor(
+                                  service[flipDialog.target!].status
+                                )}`}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>
+                                {flipDialog.target}:{" "}
+                                {service[flipDialog.target!].status}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+            </div>
           </div>
-          <DialogFooter>
-            <Button
-              onClick={() =>
-                setFlipDialog((prev) => ({ ...prev, isOpen: false }))
-              }
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={submitFlipRequest}
-              disabled={flipDialog.selectedServices.length === 0}
-            >
-              Submit for Approval
-            </Button>
+          <div className="flex items-center justify-center space-x-4 mt-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-green-500" />
+              <span className="text-xs">Healthy</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-yellow-500" />
+              <span className="text-xs">Warning</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-red-500" />
+              <span className="text-xs">Critical</span>
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">Selected:</span>
+              <span className="text-sm">
+                {flipDialog.selectedServices.length}
+              </span>
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setFlipDialog((prev) => ({ ...prev, isOpen: false }))
+                }
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={submitFlipRequest}
+                disabled={flipDialog.selectedServices.length === 0}
+              >
+                Submit Flip Request
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
