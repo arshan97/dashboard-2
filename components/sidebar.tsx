@@ -1,18 +1,19 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Shield, Activity, List } from "lucide-react"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Shield, Activity, List, Sliders } from "lucide-react";
 
 const navItems = [
   { name: "Overview", href: "/", icon: Activity },
   { name: "Requests", href: "/requests", icon: List },
-]
+  { name: "Thresholds", href: "/thresholds", icon: Sliders },
+];
 
 export function Sidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <div className="w-64 bg-card text-card-foreground h-screen p-4">
@@ -27,7 +28,7 @@ export function Sidebar() {
               variant="ghost"
               className={cn(
                 "w-full justify-start text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                pathname === item.href && "bg-muted text-foreground",
+                pathname === item.href && "bg-muted text-foreground"
               )}
             >
               <item.icon className="mr-2 h-4 w-4" />
@@ -37,6 +38,5 @@ export function Sidebar() {
         ))}
       </nav>
     </div>
-  )
+  );
 }
-
