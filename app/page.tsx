@@ -160,6 +160,19 @@ export default function DashboardPage() {
   const [serviceProvidersHealth, setServiceProvidersHealth] =
     useState(providers);
 
+  const [l3DDoSStatuses, setL3DDoSStatuses] = useState({
+    akamai: { DCE: "healthy", DCW: "healthy" },
+    cloudflare: {
+      DCE: ["healthy", "healthy", "healthy"],
+      DCW: ["healthy", "healthy"],
+    },
+  });
+
+  const [gatewayStatuses, setGatewayStatuses] = useState({
+    DCE: { Singtel: "healthy", Starhub: "healthy" },
+    DCW: { Singtel: "healthy", Starhub: "healthy" },
+  });
+
   const handleFlip = (
     source: "akamai" | "cloudflare",
     target: "akamai" | "cloudflare"
@@ -269,6 +282,34 @@ export default function DashboardPage() {
         })),
       }))
     );
+
+    // Update L3 DDoS statuses
+    setL3DDoSStatuses({
+      akamai: {
+        DCE: generateRandomStatus(status),
+        DCW: generateRandomStatus(status),
+      },
+      cloudflare: {
+        DCE: [
+          generateRandomStatus(status),
+          generateRandomStatus(status),
+          generateRandomStatus(status),
+        ],
+        DCW: [generateRandomStatus(status), generateRandomStatus(status)],
+      },
+    });
+
+    // Update Gateway statuses
+    setGatewayStatuses({
+      DCE: {
+        Singtel: generateRandomStatus(status),
+        Starhub: generateRandomStatus(status),
+      },
+      DCW: {
+        Singtel: generateRandomStatus(status),
+        Starhub: generateRandomStatus(status),
+      },
+    });
 
     toast({
       title: "Time Selected",
@@ -546,7 +587,7 @@ export default function DashboardPage() {
 
             {/* L3 DDoS Protection */}
             <div className="relative">
-              <L3DDoSProtection />
+              <L3DDoSProtection tunnelStatuses={l3DDoSStatuses} />
               <div className="hidden md:flex absolute left-[calc(33.33%-1rem)] top-1/2 -translate-y-1/2 items-center justify-center w-8 z-10">
                 <ArrowRight className="h-8 w-8 text-primary/30" />
               </div>
@@ -554,7 +595,7 @@ export default function DashboardPage() {
 
             {/* DBS Gateway */}
             <div className="relative">
-              <DBSGateway />
+              <DBSGateway gatewayStatuses={gatewayStatuses} />
               <div className="hidden md:flex absolute left-[calc(66.66%-1rem)] top-1/2 -translate-y-1/2 items-center justify-center w-8 z-10">
                 <ArrowRight className="h-8 w-8 text-primary/30" />
               </div>

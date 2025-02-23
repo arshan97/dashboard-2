@@ -21,14 +21,15 @@ const generateMockTimelineData = (): TimelineItem[] => {
   const currentDate = new Date();
 
   for (let i = 0; i < 12; i++) {
-    const date = new Date(
-      currentDate.getTime() - (22 - i) * 2 * 60 * 60 * 1000
-    );
-    const time = date.toLocaleString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
+    const date = new Date(currentDate.getTime() - (11 - i) * 60 * 60 * 1000);
+    const time =
+      i === 11
+        ? "Now"
+        : date.toLocaleString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          });
     const status = statuses[Math.floor(Math.random() * statuses.length)];
     const isCurrent = i === 11;
     timeline.push({ time, status, isCurrent });
@@ -54,9 +55,9 @@ export function HealthTimeline({ onTimeSelect }: HealthTimelineProps) {
     const now = new Date();
     setCurrentTime(
       now.toLocaleString("en-US", {
-        hour: "2-digit",
+        hour: "numeric",
         minute: "2-digit",
-        hour12: false,
+        hour12: true,
       })
     );
   }, []);
@@ -109,6 +110,11 @@ export function HealthTimeline({ onTimeSelect }: HealthTimelineProps) {
               <span className="text-xs font-medium">{item.time}</span>
             </div>
           ))}
+        </div>
+        <div className="text-center mt-2">
+          <span className="text-sm font-medium">
+            Current Time: {currentTime}
+          </span>
         </div>
       </CardContent>
     </Card>
