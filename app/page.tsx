@@ -17,6 +17,7 @@ import {
   Star,
   Zap,
   ShieldIcon,
+  Mail,
 } from "lucide-react";
 import {
   Dialog,
@@ -31,11 +32,19 @@ import { L3DDoSProtection } from "@/components/l3-ddos-protection";
 import { DBSGateway } from "@/components/dbs-gateway";
 import { ServiceProvidersGrid } from "@/components/service-providers-grid";
 import { AvailabilityChart } from "@/components/availability-chart";
+import { HealthTimeline } from "@/components/health-timeline";
 import type {
   BankingService,
   DDoSProtection,
   CDNService,
+  ServiceProvider,
 } from "@/types/dashboard";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const dnsServices: BankingService[] = [
   { name: "Internet Banking", code: "IBBR", status: "healthy" },
@@ -91,7 +100,31 @@ const cdnServices: CDNService[] = [
   },
 ];
 
-type FlipStep = "select" | "summary" | "confirm";
+const providers: ServiceProvider[] = [
+  {
+    name: "StarHub",
+    services: [
+      { name: "Internet", status: "healthy" },
+      { name: "Mobile", status: "healthy" },
+      { name: "TV", status: "healthy" },
+    ],
+  },
+  {
+    name: "Singtel",
+    services: [
+      { name: "Internet", status: "healthy" },
+      { name: "Mobile", status: "healthy" },
+      { name: "TV", status: "healthy" },
+    ],
+  },
+  {
+    name: "M1",
+    services: [
+      { name: "Internet", status: "healthy" },
+      { name: "Mobile", status: "healthy" },
+    ],
+  },
+];
 
 type FlipDialogState = {
   isOpen: boolean;
@@ -117,7 +150,15 @@ export default function DashboardPage() {
     service: null,
     provider: null,
   });
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const [dnsServicesHealth, setDnsServicesHealth] = useState(dnsServices);
+  const [ddosProtectionHealth, setDdosProtectionHealth] =
+    useState(ddosProtection);
+  const [cdnServicesHealth, setCdnServicesHealth] = useState(services);
+  const [serviceProvidersHealth, setServiceProvidersHealth] =
+    useState(providers);
 
   const handleFlip = (
     source: "akamai" | "cloudflare",
@@ -127,9 +168,7 @@ export default function DashboardPage() {
       isOpen: true,
       source,
       target,
-      selectedServices: services
-        .filter((s) => s[source].active)
-        .map((s) => s.code),
+      selectedServices: [], // Changed from pre-selecting services to an empty array
     });
   };
 
@@ -165,6 +204,78 @@ export default function DashboardPage() {
     setChartDialog({ isOpen: true, service, provider });
   };
 
+  const handleTimeSelect = (
+    time: string,
+    status: "healthy" | "warning" | "critical"
+  ) => {
+    setSelectedTime(time);
+
+    // Generate random health statuses based on the selected time's overall status
+    const generateRandomStatus = (
+      baseStatus: "healthy" | "warning" | "critical"
+    ) => {
+      const statuses: ("healthy" | "warning" | "critical")[] = [
+        "healthy",
+        "warning",
+        "critical",
+      ];
+      const randomIndex = Math.floor(Math.random() * 3);
+      return baseStatus === "healthy"
+        ? randomIndex === 0
+          ? "warning"
+          : "healthy"
+        : baseStatus === "warning"
+        ? statuses[randomIndex]
+        : randomIndex === 0
+        ? "warning"
+        : "critical";
+    };
+
+    // Update DNS services health
+    setDnsServicesHealth(
+      dnsServices.map((service) => ({
+        ...service,
+        status: generateRandomStatus(status),
+      }))
+    );
+
+    // Update DDoS protection health
+    setDdosProtectionHealth(
+      ddosProtection.map((protection) => ({
+        ...protection,
+        status: generateRandomStatus(status),
+      }))
+    );
+
+    // Update CDN services health
+    setCdnServicesHealth(
+      services.map((service) => ({
+        ...service,
+        akamai: { ...service.akamai, status: generateRandomStatus(status) },
+        cloudflare: {
+          ...service.cloudflare,
+          status: generateRandomStatus(status),
+        },
+      }))
+    );
+
+    // Update service providers health
+    setServiceProvidersHealth(
+      providers.map((provider) => ({
+        ...provider,
+        services: provider.services.map((service) => ({
+          ...service,
+          status: generateRandomStatus(status),
+        })),
+      }))
+    );
+
+    toast({
+      title: "Time Selected",
+      description: `Showing overview for ${time}`,
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "healthy":
@@ -180,10 +291,13 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto p-2 overflow-x-auto min-w-full h-full">
+      <div className="mb-6">
+        <HealthTimeline onTimeSelect={handleTimeSelect} />
+      </div>
       <div className="flex space-x-6 h-full">
         {/* Service Providers Grid */}
         <div className="w-1/3 h-full">
-          <ServiceProvidersGrid />
+          <ServiceProvidersGrid providers={serviceProvidersHealth} />
         </div>
 
         {/* Right side components */}
@@ -205,29 +319,33 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="text-sm font-medium mb-2">DNS Records</h3>
                   <div className="grid grid-cols-3 gap-2">
-                    {dnsServices.map((service) => (
+                    {dnsServicesHealth.map((service) => (
                       <div
                         key={service.code}
                         className="flex flex-col items-center justify-center p-2 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors"
                       >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center mb-1 bg-primary/10">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${getStatusColor(
+                            service.status
+                          )}`}
+                        >
                           {service.code === "IBBR" && (
-                            <Globe className="h-4 w-4" />
+                            <Globe className="h-4 w-4 text-black" />
                           )}
                           {service.code === "MBS" && (
-                            <Smartphone className="h-4 w-4" />
+                            <Smartphone className="h-4 w-4 text-black" />
                           )}
                           {service.code === "P2P-SG" && (
-                            <CreditCard className="h-4 w-4" />
+                            <CreditCard className="h-4 w-4 text-black" />
                           )}
                           {service.code === "IWSM" && (
-                            <BarChart3 className="h-4 w-4" />
+                            <BarChart3 className="h-4 w-4 text-black" />
                           )}
                           {service.code === "IDEAL" && (
-                            <Building2 className="h-4 w-4" />
+                            <Building2 className="h-4 w-4 text-black" />
                           )}
                           {service.code === "IDEAL-M" && (
-                            <Tablet className="h-4 w-4" />
+                            <Tablet className="h-4 w-4 text-black" />
                           )}
                         </div>
                         <span className="text-xs font-medium text-center">
@@ -245,27 +363,42 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="text-sm font-medium mb-2">DNS Provider</h3>
                   <div className="space-y-2">
-                    {ddosProtection.map((protection) => (
+                    {ddosProtectionHealth.map((protection) => (
                       <div
                         key={protection.name}
                         className="flex items-center justify-between p-2 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors"
                       >
                         <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary/10">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center ${getStatusColor(
+                              protection.status
+                            )}`}
+                          >
                             {protection.name === "StarHub" && (
-                              <Star className="h-4 w-4" />
+                              <Star className="h-4 w-4 text-black" />
                             )}
                             {protection.name === "Akamai" && (
-                              <Zap className="h-4 w-4" />
+                              <Zap className="h-4 w-4 text-black" />
                             )}
                             {protection.name === "Nexus Guard" && (
-                              <ShieldIcon className="h-4 w-4" />
+                              <ShieldIcon className="h-4 w-4 text-black" />
                             )}
                           </div>
                           <span className="text-sm font-medium">
                             {protection.name}
                           </span>
                         </div>
+                        <button
+                          onClick={() =>
+                            (window.location.href = `mailto:support@${protection.name
+                              .toLowerCase()
+                              .replace(" ", "")}.com`)
+                          }
+                          className="p-2 rounded-full hover:bg-primary/10 transition-colors"
+                          aria-label={`Send email to ${protection.name} support`}
+                        >
+                          <Mail className="h-4 w-4" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -299,30 +432,34 @@ export default function DashboardPage() {
                       </Button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {services.map((service) => (
+                      {cdnServicesHealth.map((service) => (
                         <div
                           key={`akamai-${service.code}`}
                           className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors cursor-pointer"
                           onClick={() => handleOpenChart(service, "akamai")}
                         >
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center mb-1 bg-primary/10">
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center mb-1 ${getStatusColor(
+                              service.akamai.status
+                            )}`}
+                          >
                             {service.code === "IBBR" && (
-                              <Globe className="h-3.5 w-3.5" />
+                              <Globe className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "MBS" && (
-                              <Smartphone className="h-3.5 w-3.5" />
+                              <Smartphone className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "P2P-SG" && (
-                              <CreditCard className="h-3.5 w-3.5" />
+                              <CreditCard className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "IWSM" && (
-                              <BarChart3 className="h-3.5 w-3.5" />
+                              <BarChart3 className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "IDEAL" && (
-                              <Building2 className="h-3.5 w-3.5" />
+                              <Building2 className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "IDEAL-M" && (
-                              <Tablet className="h-3.5 w-3.5" />
+                              <Tablet className="h-3.5 w-3.5 text-black" />
                             )}
                           </div>
                           <span className="text-xs font-medium text-center">
@@ -356,30 +493,34 @@ export default function DashboardPage() {
                       </Button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {services.map((service) => (
+                      {cdnServicesHealth.map((service) => (
                         <div
                           key={`cloudflare-${service.code}`}
                           className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors cursor-pointer"
                           onClick={() => handleOpenChart(service, "cloudflare")}
                         >
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center mb-1 bg-primary/10">
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center mb-1 ${getStatusColor(
+                              service.cloudflare.status
+                            )}`}
+                          >
                             {service.code === "IBBR" && (
-                              <Globe className="h-3.5 w-3.5" />
+                              <Globe className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "MBS" && (
-                              <Smartphone className="h-3.5 w-3.5" />
+                              <Smartphone className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "P2P-SG" && (
-                              <CreditCard className="h-3.5 w-3.5" />
+                              <CreditCard className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "IWSM" && (
-                              <BarChart3 className="h-3.5 w-3.5" />
+                              <BarChart3 className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "IDEAL" && (
-                              <Building2 className="h-3.5 w-3.5" />
+                              <Building2 className="h-3.5 w-3.5 text-black" />
                             )}
                             {service.code === "IDEAL-M" && (
-                              <Tablet className="h-3.5 w-3.5" />
+                              <Tablet className="h-3.5 w-3.5 text-black" />
                             )}
                           </div>
                           <span className="text-xs font-medium text-center">
@@ -430,20 +571,28 @@ export default function DashboardPage() {
       >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>
-              CDN Flip: {flipDialog.source} to {flipDialog.target}
-            </DialogTitle>
+            <DialogTitle>CDN Flip</DialogTitle>
             <DialogDescription>
-              Select services to flip. Critical services cannot be flipped.
+              Select services to flip from{" "}
+              {flipDialog.source?.charAt(0).toUpperCase() +
+                flipDialog.source?.slice(1)}{" "}
+              to{" "}
+              {flipDialog.target?.charAt(0).toUpperCase() +
+                flipDialog.target?.slice(1)}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex justify-between items-center text-sm font-medium bg-muted p-2 rounded">
+            <div className="grid grid-cols-[2fr,1fr,1fr,1fr] items-center text-sm font-medium bg-muted p-2 rounded">
               <span>Service</span>
-              <div className="flex space-x-4">
-                <span>{flipDialog.source}</span>
-                <span>{flipDialog.target}</span>
-              </div>
+              <span className="text-center">
+                {flipDialog.source?.charAt(0).toUpperCase() +
+                  flipDialog.source?.slice(1)}
+              </span>
+              <span className="text-center">Flip</span>
+              <span className="text-center">
+                {flipDialog.target?.charAt(0).toUpperCase() +
+                  flipDialog.target?.slice(1)}
+              </span>
             </div>
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
               {services
@@ -454,11 +603,11 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={service.code}
-                      className={`flex items-center justify-between space-x-2 p-2 rounded ${
+                      className={`grid grid-cols-[2fr,1fr,1fr,1fr] items-center gap-2 p-2 rounded ${
                         isTargetCritical ? "bg-muted/50" : "hover:bg-muted/30"
                       } transition-colors`}
                     >
-                      <div className="flex items-center space-x-2 flex-1">
+                      <div className="flex items-center space-x-2">
                         {!isTargetCritical && (
                           <Checkbox
                             id={service.code}
@@ -479,7 +628,7 @@ export default function DashboardPage() {
                           {service.name} ({service.code})
                         </label>
                       </div>
-                      <div className="flex items-center space-x-4">
+                      <div className="flex justify-center">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -490,21 +639,18 @@ export default function DashboardPage() {
                               />
                             </TooltipTrigger>
                             <TooltipContent side="top">
-                              <p>
-                                {flipDialog.source}:{" "}
-                                {service[flipDialog.source!].status}
-                              </p>
+                              <p>{service[flipDialog.source!].status}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <div className="w-8 flex justify-center">
-                          {!isTargetCritical &&
-                            flipDialog.selectedServices.includes(
-                              service.code
-                            ) && (
-                              <ArrowRight className="h-4 w-4 text-primary" />
-                            )}
-                        </div>
+                      </div>
+                      <div className="flex justify-center">
+                        {!isTargetCritical &&
+                          flipDialog.selectedServices.includes(
+                            service.code
+                          ) && <ArrowRight className="h-4 w-4" />}
+                      </div>
+                      <div className="flex justify-center">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -515,10 +661,7 @@ export default function DashboardPage() {
                               />
                             </TooltipTrigger>
                             <TooltipContent side="top">
-                              <p>
-                                {flipDialog.target}:{" "}
-                                {service[flipDialog.target!].status}
-                              </p>
+                              <p>{service[flipDialog.target!].status}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
