@@ -1,16 +1,32 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusIndicator } from "@/components/status-indicator";
 import { Zap, Globe } from "lucide-react";
 
 type L3DDoSProtectionProps = {
   tunnelStatuses: {
-    akamai: { DCE: string; DCW: string };
-    cloudflare: { DCE: string[]; DCW: string[] };
+    akamai: {
+      DCE: { ip: string; status: string }[];
+      DCW: { ip: string; status: string }[];
+    };
+    cloudflare: {
+      DCE: { ip: string; status: string }[];
+      DCW: { ip: string; status: string }[];
+    };
   };
 };
 
 export function L3DDoSProtection({ tunnelStatuses }: L3DDoSProtectionProps) {
-  // ... existing code ...
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "healthy":
+        return "bg-emerald-600 dark:bg-emerald-500";
+      case "warning":
+        return "bg-yellow-600 dark:bg-yellow-500";
+      case "critical":
+        return "bg-rose-600 dark:bg-rose-500";
+      default:
+        return "bg-gray-600 dark:bg-gray-500";
+    }
+  };
 
   return (
     <Card className="bg-card/50 backdrop-blur-sm shadow-lg">
@@ -25,7 +41,7 @@ export function L3DDoSProtection({ tunnelStatuses }: L3DDoSProtectionProps) {
           <h3 className="text-sm font-medium mb-2">Akamai</h3>
           <div className="space-y-3">
             {Object.entries(tunnelStatuses.akamai).map(
-              ([location, status], index) => (
+              ([location, tunnels], index) => (
                 <div key={location}>
                   {index > 0 && (
                     <div className="flex flex-col items-center my-2">
@@ -39,25 +55,23 @@ export function L3DDoSProtection({ tunnelStatuses }: L3DDoSProtectionProps) {
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors">
+                    {tunnels.map((tunnel) => (
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center mb-1 ${
-                          status === "healthy"
-                            ? "bg-emerald-600 dark:bg-emerald-500"
-                            : "bg-rose-600 dark:bg-rose-500"
-                        }`}
+                        key={tunnel.ip}
+                        className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 transition-colors"
                       >
-                        <Zap className="h-3.5 w-3.5 text-black" />
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${getStatusColor(
+                            tunnel.status
+                          )}`}
+                        >
+                          <Zap className="h-4 w-4 text-black" />
+                        </div>
+                        <span className="text-[10px] font-medium text-center mt-1">
+                          {tunnel.ip}
+                        </span>
                       </div>
-                      <span className="text-[9px] font-medium text-center">
-                        {location}
-                      </span>
-                      <StatusIndicator
-                        status={status}
-                        size="sm"
-                        className="mt-0.5"
-                      />
-                    </div>
+                    ))}
                   </div>
                 </div>
               )
@@ -70,7 +84,7 @@ export function L3DDoSProtection({ tunnelStatuses }: L3DDoSProtectionProps) {
           <h3 className="text-sm font-medium mb-2">Cloudflare</h3>
           <div className="space-y-3">
             {Object.entries(tunnelStatuses.cloudflare).map(
-              ([location, statuses], index) => (
+              ([location, tunnels], index) => (
                 <div key={location}>
                   {index > 0 && (
                     <div className="flex flex-col items-center my-2">
@@ -83,29 +97,22 @@ export function L3DDoSProtection({ tunnelStatuses }: L3DDoSProtectionProps) {
                       </span>
                     </div>
                   )}
-                  <div className="grid grid-cols-3 gap-2">
-                    {statuses.map((status, idx) => (
+                  <div className="grid grid-cols-2 gap-2">
+                    {tunnels.map((tunnel) => (
                       <div
-                        key={`${location}-${idx}`}
-                        className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 hover:bg-background/80 transition-colors"
+                        key={tunnel.ip}
+                        className="flex flex-col items-center justify-center p-1.5 rounded-lg border border-border/50 bg-background/50 transition-colors"
                       >
                         <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center mb-1 ${
-                            status === "healthy"
-                              ? "bg-emerald-600 dark:bg-emerald-500"
-                              : "bg-rose-600 dark:bg-rose-500"
-                          }`}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${getStatusColor(
+                            tunnel.status
+                          )}`}
                         >
-                          <Globe className="h-3.5 w-3.5 text-black" />
+                          <Globe className="h-4 w-4 text-black" />
                         </div>
-                        <span className="text-[9px] font-medium text-center">
-                          {location}
+                        <span className="text-[10px] font-medium text-center mt-1">
+                          {tunnel.ip}
                         </span>
-                        <StatusIndicator
-                          status={status}
-                          size="sm"
-                          className="mt-0.5"
-                        />
                       </div>
                     ))}
                   </div>

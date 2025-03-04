@@ -1,8 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import type { CDNService } from "@/types/dashboard";
-import { Shield } from "@/components/ui/shield";
+import { Shield } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -10,15 +9,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-type CDNStatusProps = {
-  cdnServices: CDNService[];
-  onFlip: (
-    source: "akamai" | "cloudflare",
-    target: "akamai" | "cloudflare"
-  ) => void;
+type CleanPipeStatusProps = {
+  cleanPipeStatuses: {
+    akamai: { [key: string]: { status: string; active: boolean } };
+    cloudflare: { [key: string]: { status: string; active: boolean } };
+  };
+  services: CDNService[];
 };
 
-export function CDNStatus({ cdnServices, onFlip }: CDNStatusProps) {
+export function CleanPipeStatus({
+  cleanPipeStatuses,
+  services,
+}: CleanPipeStatusProps) {
   const getOuterStatusColor = (status: string) => {
     if (status === "critical") return "bg-red-500";
     if (status === "warning") return "bg-yellow-500";
@@ -37,30 +39,14 @@ export function CDNStatus({ cdnServices, onFlip }: CDNStatusProps) {
 
   return (
     <Card className="h-full bg-secondary/5 border-l-4 border-l-primary">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center">
-          CDN
-          <Shield className="ml-2 h-4 w-4 text-primary" />
+          Clean Pipe
+          <Shield className="ml-auto h-4 w-4 text-primary" />
           <span className="ml-1.5 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
             DBS Control
           </span>
         </CardTitle>
-        <div className="flex space-x-1">
-          <Button
-            size="sm"
-            onClick={() => onFlip("akamai", "cloudflare")}
-            className="text-xs py-1 h-6"
-          >
-            To Cloudflare
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => onFlip("cloudflare", "akamai")}
-            className="text-xs py-1 h-6"
-          >
-            To Akamai
-          </Button>
-        </div>
       </CardHeader>
       <CardContent className="p-2">
         <div className="grid grid-cols-2 gap-2">
@@ -68,13 +54,13 @@ export function CDNStatus({ cdnServices, onFlip }: CDNStatusProps) {
             <div key={provider} className="space-y-1">
               <h3 className="text-xs font-medium capitalize">{provider}</h3>
               <div className="space-y-1 -mt-1.5">
-                {cdnServices.map((service) => {
-                  const serviceStatus =
-                    service[provider as keyof typeof service]?.status ||
-                    "unknown";
-                  const isActive =
-                    service[provider as keyof typeof service]?.active || false;
-
+                {services.map((service) => {
+                  const statusData = cleanPipeStatuses[
+                    provider as keyof typeof cleanPipeStatuses
+                  ][service.code] || {
+                    status: "unknown",
+                    active: false,
+                  };
                   return (
                     <div
                       key={service.code}
@@ -85,15 +71,15 @@ export function CDNStatus({ cdnServices, onFlip }: CDNStatusProps) {
                           <TooltipTrigger>
                             <div
                               className={`w-5 h-5 rounded-full ${getOuterStatusColor(
-                                serviceStatus
+                                statusData.status
                               )} flex items-center justify-center transition-transform hover:scale-110`}
                             >
                               <div
                                 className={`w-3 h-3 rounded-full ${getInnerStatusColor(
-                                  isActive
+                                  statusData.active
                                 )} flex items-center justify-center`}
                               >
-                                {isActive && (
+                                {statusData.active && (
                                   <Check className="w-2 h-2 text-blue-500" />
                                 )}
                               </div>
@@ -102,7 +88,10 @@ export function CDNStatus({ cdnServices, onFlip }: CDNStatusProps) {
                           <TooltipContent side="right">
                             <p className="text-xs">
                               {service.name} ({service.code}):{" "}
-                              {getStatusText(serviceStatus, isActive)}
+                              {getStatusText(
+                                statusData.status,
+                                statusData.active
+                              )}
                             </p>
                           </TooltipContent>
                         </Tooltip>

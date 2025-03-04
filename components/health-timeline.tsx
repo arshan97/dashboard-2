@@ -1,48 +1,49 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Clock, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { Clock } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type TimelineItem = {
   time: string;
-  status: "healthy" | "warning" | "critical";
   isCurrent: boolean;
 };
 
-const generateMockTimelineData = (): TimelineItem[] => {
-  const statuses: ("healthy" | "warning" | "critical")[] = [
-    "healthy",
-    "warning",
-    "critical",
-  ];
+const generateTimelineData = (): TimelineItem[] => {
   const timeline: TimelineItem[] = [];
   const currentDate = new Date();
+  currentDate.setMinutes(
+    currentDate.getMinutes() - (currentDate.getMinutes() % 5),
+    0,
+    0
+  ); // Round to nearest 5 minutes
 
-  for (let i = 0; i < 12; i++) {
-    const date = new Date(currentDate.getTime() - (11 - i) * 60 * 60 * 1000);
+  for (let i = 0; i < 13; i++) {
+    const date = new Date(currentDate.getTime() - i * 5 * 60 * 1000);
     const time =
-      i === 11
+      i === 0
         ? "Now"
         : date.toLocaleString("en-US", {
             hour: "numeric",
             minute: "2-digit",
             hour12: true,
           });
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const isCurrent = i === 11;
-    timeline.push({ time, status, isCurrent });
+    const isCurrent = i === 0;
+    timeline.unshift({ time, isCurrent }); // Add to the beginning of the array
   }
 
   return timeline;
 };
 
 type HealthTimelineProps = {
-  onTimeSelect: (
-    time: string,
-    status: "healthy" | "warning" | "critical"
-  ) => void;
+  onTimeSelect: (time: string) => void;
 };
 
 export function HealthTimeline({ onTimeSelect }: HealthTimelineProps) {
@@ -51,7 +52,7 @@ export function HealthTimeline({ onTimeSelect }: HealthTimelineProps) {
   const [currentTime, setCurrentTime] = useState<string>("");
 
   useEffect(() => {
-    setTimeline(generateMockTimelineData());
+    setTimeline(generateTimelineData());
     const now = new Date();
     setCurrentTime(
       now.toLocaleString("en-US", {
@@ -64,57 +65,53 @@ export function HealthTimeline({ onTimeSelect }: HealthTimelineProps) {
 
   const handleTimeClick = (item: TimelineItem) => {
     setSelectedTime(item.time);
-    onTimeSelect(item.time, item.status);
+    onTimeSelect(item.time);
   };
 
   return (
     <Card className="bg-card shadow-lg">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center justify-between">
-          <span>Health Timeline (Last 24 Hours)</span>
-          <div className="flex items-center text-sm font-normal">
-            <Clock className="w-4 h-4 mr-1" />
-            Current Time: {currentTime}
+      <CardContent className="p-2">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium">Timeline (Last Hour)</span>
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Clock className="w-3 h-3 mr-1" />
+            {currentTime}
           </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-2">
-        <div className="flex items-center justify-between space-x-1">
-          {timeline.map((item, index) => (
-            <div key={index} className="flex flex-col items-center">
-              <button
-                className={cn(
-                  "w-12 h-12 rounded-full mb-1 border-2 transition-all flex items-center justify-center",
-                  item.status === "healthy" &&
-                    "bg-green-500 hover:bg-green-600",
-                  item.status === "warning" &&
-                    "bg-yellow-500 hover:bg-yellow-600",
-                  item.status === "critical" && "bg-red-500 hover:bg-red-600",
-                  item.isCurrent && "ring-2 ring-blue-500",
-                  selectedTime === item.time && "border-white",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500"
-                )}
-                onClick={() => handleTimeClick(item)}
-                aria-label={`Health status at ${item.time}: ${item.status}`}
-              >
-                {item.status === "healthy" && (
-                  <CheckCircle className="w-6 h-6 text-white" />
-                )}
-                {item.status === "warning" && (
-                  <AlertTriangle className="w-6 h-6 text-white" />
-                )}
-                {item.status === "critical" && (
-                  <XCircle className="w-6 h-6 text-white" />
-                )}
-              </button>
-              <span className="text-xs font-medium">{item.time}</span>
-            </div>
-          ))}
         </div>
-        <div className="text-center mt-2">
-          <span className="text-sm font-medium">
-            Current Time: {currentTime}
-          </span>
+        <div className="relative">
+          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-primary/20 transform -translate-y-1/2" />
+          <div className="relative flex justify-between items-center">
+            {timeline.map((item, index) => (
+              <TooltipProvider key={index}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      className="flex flex-col items-center focus:outline-none group"
+                      onClick={() => handleTimeClick(item)}
+                      aria-label={`Select time: ${item.time}`}
+                    >
+                      <div
+                        className={cn(
+                          "w-2 h-2 rounded-full border border-primary bg-background transition-all",
+                          selectedTime === item.time && "w-3 h-3 bg-primary",
+                          item.isCurrent &&
+                            "ring-1 ring-primary ring-offset-1 ring-offset-background"
+                        )}
+                      />
+                      <span className="mt-1 text-[8px] font-medium transition-colors whitespace-nowrap">
+                        {item.time === "Now"
+                          ? item.time
+                          : item.time.split(" ")[0]}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    {item.time}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>

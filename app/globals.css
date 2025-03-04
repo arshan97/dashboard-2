@@ -24,28 +24,37 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    --status-healthy: 142 76% 36%;
+    --status-warning: 38 92% 50%;
+    --status-critical: 0 84% 60%;
+    --status-unknown: 215 20% 65%;
+    --primary-rgb: 0, 112, 243; /* Example RGB value for primary color */
   }
 
   .dark {
-    --background: 0 0% 0%;
+    --background: 240 10% 4%;
     --foreground: 0 0% 100%;
-    --card: 0 0% 27%;
+    --card: 240 10% 4%;
     --card-foreground: 0 0% 100%;
-    --popover: 0 0% 27%;
+    --popover: 240 10% 4%;
     --popover-foreground: 0 0% 100%;
     --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 45%;
+    --primary-foreground: 240 10% 4%;
+    --secondary: 240 10% 8%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 45%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 0 0% 45%;
+    --muted: 240 10% 8%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 240 10% 8%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 100% 50%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 45%;
-    --input: 0 0% 45%;
-    --ring: 0 0% 100%;
+    --border: 240 10% 8%;
+    --input: 240 10% 8%;
+    --ring: 240 10% 8%;
+    --status-healthy: 142 76% 36%;
+    --status-warning: 38 92% 50%;
+    --status-critical: 0 84% 60%;
+    --status-unknown: 215 20% 65%;
   }
 }
 
@@ -58,3 +67,22 @@
   }
 }
 
+.glassmorphic {
+  @apply bg-background/40 backdrop-blur-md border border-border/20;
+}
+
+.status-healthy {
+  background-color: hsl(var(--status-healthy));
+}
+
+.status-warning {
+  background-color: hsl(var(--status-warning));
+}
+
+.status-critical {
+  background-color: hsl(var(--status-critical));
+}
+
+.status-unknown {
+  background-color: hsl(var(--status-unknown));
+}
