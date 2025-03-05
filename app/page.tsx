@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Check, Shield, Mail } from "lucide-react";
+import { ArrowRight, Check, Shield, Mail, ArrowUpDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,11 +28,15 @@ import { ApplicationCodes } from "@/components/application-codes";
 import { DNSRecords } from "@/components/dns-records";
 import { CDNStatus } from "@/components/cdn-status";
 import { CleanPipeStatus } from "@/components/clean-pipe-status";
-
-type CDNStatus = {
-  status: "healthy" | "warning" | "critical";
-  active: boolean;
-};
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type CDNService = {
   name: string;
@@ -244,6 +248,19 @@ type FlipDialogState = {
   selectedServices: string[];
 };
 
+type SortOption =
+  | "default"
+  | "akamai-active"
+  | "akamai-inactive"
+  | "akamai-healthy"
+  | "akamai-warning"
+  | "akamai-critical"
+  | "cloudflare-active"
+  | "cloudflare-inactive"
+  | "cloudflare-healthy"
+  | "cloudflare-warning"
+  | "cloudflare-critical";
+
 export default function DashboardPage() {
   const [cdnServices, setCdnServices] = useState(initialState.cdnServices);
   const [cleanPipeStatuses, setCleanPipeStatuses] = useState(
@@ -265,6 +282,7 @@ export default function DashboardPage() {
     provider: null,
   });
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [sortOption, setSortOption] = useState<SortOption>("default");
   const { toast } = useToast();
 
   const [dnsServicesHealth, setDnsServicesHealth] = useState(
@@ -446,9 +464,133 @@ export default function DashboardPage() {
     }));
   };
 
+  const getSortedServices = (services: CDNService[]) => {
+    if (sortOption === "default") return services;
+
+    const [provider, criteria] = sortOption.split("-") as [
+      "akamai" | "cloudflare",
+      "active" | "inactive" | "healthy" | "warning" | "critical"
+    ];
+
+    return [...services].sort((a, b) => {
+      if (criteria === "active") {
+        // Sort by active status (active first)
+        return a[provider]?.active === b[provider]?.active
+          ? 0
+          : a[provider]?.active
+          ? -1
+          : 1;
+      } else if (criteria === "inactive") {
+        // Sort by inactive status (inactive first)
+        return a[provider]?.active === b[provider]?.active
+          ? 0
+          : a[provider]?.active
+          ? 1
+          : -1;
+      } else {
+        // Sort by health status (matching criteria first)
+        return a[provider]?.status === criteria &&
+          b[provider]?.status !== criteria
+          ? -1
+          : b[provider]?.status === criteria && a[provider]?.status !== criteria
+          ? 1
+          : 0;
+      }
+    });
+  };
+
+  const sortedServices = getSortedServices(cdnServices);
+
+  const handleSortChange = (option: SortOption) => {
+    setSortOption(option);
+    toast({
+      title: "Sort Order Changed",
+      description: `Services are now sorted by ${option.replace("-", " ")}`,
+    });
+  };
+
   return (
     <div className="w-full space-y-4">
-      <HealthTimeline onTimeSelect={handleTimeSelect} />
+      <div className="flex justify-between items-center">
+        <HealthTimeline onTimeSelect={handleTimeSelect} />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="ml-2">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-2" />
+              Sort Services
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleSortChange("default")}>
+              Default order
+            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                Akamai
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("akamai-active")}
+              >
+                Active first
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("akamai-inactive")}
+              >
+                Inactive first
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("akamai-healthy")}
+              >
+                Healthy first
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("akamai-warning")}
+              >
+                Warning first
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("akamai-critical")}
+              >
+                Critical first
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                Cloudflare
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("cloudflare-active")}
+              >
+                Active first
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("cloudflare-inactive")}
+              >
+                Inactive first
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("cloudflare-healthy")}
+              >
+                Healthy first
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("cloudflare-warning")}
+              >
+                Warning first
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSortChange("cloudflare-critical")}
+              >
+                Critical first
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {/* DNS Provider Section - Centered above grid */}
       <div className="flex justify-center mb-4">
@@ -493,16 +635,16 @@ export default function DashboardPage() {
 
       {/* Main Grid */}
       <div className="grid grid-cols-6 gap-2">
-        <ApplicationCodes codes={cdnServices} />
+        <ApplicationCodes codes={sortedServices} />
         <ServiceProvidersGrid
           providers={serviceProvidersHealth}
-          services={cdnServices}
+          services={sortedServices}
         />
-        <DNSRecords dnsServices={dnsServicesHealth} services={cdnServices} />
-        <CDNStatus cdnServices={cdnServices} onFlip={handleFlip} />
+        <DNSRecords dnsServices={dnsServicesHealth} services={sortedServices} />
+        <CDNStatus cdnServices={sortedServices} onFlip={handleFlip} />
         <CleanPipeStatus
           cleanPipeStatuses={cleanPipeStatuses}
-          services={cdnServices}
+          services={sortedServices}
         />
         <Card className="h-full bg-secondary/5 border-l-4 border-l-primary">
           <CardHeader className="pb-2">
@@ -557,7 +699,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-              {cdnServices
+              {sortedServices
                 .filter(
                   (service) =>
                     service[flipDialog.source!]?.active &&
